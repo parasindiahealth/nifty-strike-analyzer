@@ -2,7 +2,7 @@
 // Option Chain widget with proxy support and simple renderer.
 // Remember to set PROXY_URL to your deployed worker URL before using live OC fetch.
 const OC = (function(){
-  let PROXY_URL = 'https://bitter-glitter-2d84.paras-indiahealth.workers.dev/='; // <--- replace after worker deploy
+  let PROXY_URL = 'https://soft-snow-bf47.paras-indiahealth.workers.dev/?url='; // <--- replace after worker deploy
 
   function setProxy(url) { PROXY_URL = url; }
 
