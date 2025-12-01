@@ -1,27 +1,33 @@
-# Nifty Strike Analyzer — Full Browser Tool
+# Nifty Strike Analyzer — Advanced Browser Prototype
 
-This project is a zero-budget, browser-only prototype that:
-- Displays candlestick charts using LightweightCharts
-- Calculates MA(22), Bollinger Bands, ADX
-- Shows an in-app option chain fetched from NSE via a proxy (Cloudflare Worker)
-- Trains a small TF.js model in-browser to predict next close (demo)
-- Exports a scaffold ready to deploy on GitHub Pages and Cloudflare Workers
+## What's included
+- `index.html` — main single-page app (Tailwind CSS, LightweightCharts, TF.js)
+- `assets/js/ocWidget.js` — option-chain fetcher + renderer (uses a proxy URL)
+- `assets/js/app.js` — main application logic: CSV parsing, indicators (MA, BB, ADX, RSI), charting, TF.js model, news sentiment, signal export
+- `worker/proxy-worker.js` — Cloudflare Worker script to proxy NSE requests and add CORS headers
+- `README.md` — this file
 
-## Setup
+## Deploy (zero budget)
+1. **Deploy Cloudflare Worker** (recommended):
+   - Create a free Cloudflare account: https://dash.cloudflare.com
+   - Create a Worker and paste the contents of `worker/proxy-worker.js`
+   - Deploy — you'll receive a `https://<your-worker>.workers.dev` URL
+   - Edit `assets/js/ocWidget.js` and replace the `PROXY_URL` placeholder with: `https://<your-worker>.workers.dev/?url=`
 
-1. Deploy the Cloudflare Worker:
-   - Create an account at https://dash.cloudflare.com
-   - Create a Worker and paste the code from `worker/proxy-worker.js`
-   - Deploy and copy the worker URL (e.g., https://your-worker.workers.dev)
-
-2. Update proxy URL:
-   - Open `assets/js/ocWidget.js`
-   - Replace the placeholder `PROXY_URL` value with your worker URL + '?url='
-     e.g. "https://your-worker.workers.dev/?url="
-
-3. Host the static site:
-   - Use GitHub Pages / Netlify / Vercel to host the project folder (index.html + assets)
+2. **Host static site**:
+   - Use GitHub Pages (free), Vercel (free), or Netlify (free).
+   - Example: GitHub Pages
+     - Create a repo, push project files
+     - Settings -> Pages -> Publish branch `main` (root)
+     - Visit `https://<username>.github.io/<repo>/`
 
 ## Notes & Caveats
-- The NSE JSON endpoint may change. If the option-chain fetch fails, inspect proxied JSON in browser DevTools.
-- Respect NSE terms of use. This tool is for personal/learning use.
+- NSE may change their API; the worker helps emulate browser headers but scraping may still fail if NSE blocks.
+- This is a prototype. Backtest thoroughly before considering any real trades.
+- News sentiment is simplistic; extend with proper NLP for production.
+- FII/DII sources often require CSV export or scraping protected pages. For zero-budget, upload a CSV export.
+
+## Next steps
+- Add authentication and persistent storage (GitHub OAuth + GitHub Gists or IndexedDB)
+- Add configurable signal rules and backtesting module
+- Improve ML model (LSTM/transformer, features, walk-forward validation)

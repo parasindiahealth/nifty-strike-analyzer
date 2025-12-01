@@ -11,9 +11,11 @@
   <!-- TensorFlow.js -->
   <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.9.0/dist/tf.min.js"></script>
   <style>
-    body { background: #0f172a; color:#e6eef8; }
-    .card { background: linear-gradient(180deg, rgba(255,255,255,0.03), rgba(255,255,255,0.02)); border: 1px solid rgba(255,255,255,0.04); }
+    body { background: #071029; color:#e6eef8; font-family:Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial; }
+    .card { background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01)); border: 1px solid rgba(255,255,255,0.03); }
     .small { font-size:0.9rem; color:#bcd2ff; }
+    .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, "Roboto Mono", monospace; }
+    a.link { color:#93c5fd; text-decoration:underline; }
   </style>
 </head>
 <body class="p-6">
@@ -21,22 +23,23 @@
     <header class="flex items-center justify-between mb-6">
       <div>
         <h1 class="text-2xl font-semibold">Nifty Strike Analyzer</h1>
-        <div class="small">LightweightCharts + Tailwind + TF.js — Browser-only prototype</div>
+        <div class="small">LightweightCharts + Tailwind + TF.js — Advanced browser prototype</div>
       </div>
       <div class="flex gap-3 items-center">
         <select id="symbolSel" class="rounded px-3 py-2 bg-slate-900 border border-slate-700">
           <option>NIFTY</option>
           <option>BANKNIFTY</option>
         </select>
-        <button id="deployWorkerBtn" class="px-3 py-2 bg-emerald-500 text-slate-900 rounded font-medium">Deploy Worker (Instructions)</button>
+        <button id="deployWorkerBtn" class="px-3 py-2 bg-emerald-500 text-slate-900 rounded font-medium">Worker Info</button>
       </div>
     </header>
 
     <div class="grid grid-cols-12 gap-6">
       <div class="col-span-8 card p-4 rounded-lg">
-        <div id="chart" style="height:420px;"></div>
+        <div id="chart" style="height:460px;"></div>
+
         <div class="mt-3 flex items-center justify-between">
-          <div class="small">Underlyng: <span id="underVal">-</span> · Latest Signal: <span id="latestSignal">HOLD</span></div>
+          <div class="small">Underlying: <span id="underVal">-</span> · Latest Signal: <span id="latestSignal">HOLD</span></div>
           <div class="flex gap-2">
             <button id="trainBtn" class="px-3 py-1 rounded bg-indigo-600">Train Model</button>
             <button id="predictBtn" class="px-3 py-1 rounded bg-amber-500">Predict Next</button>
@@ -46,23 +49,26 @@
         <div class="mt-4 grid grid-cols-3 gap-3">
           <div class="card p-3 rounded">
             <div class="font-semibold">Indicators</div>
-            <div class="small mt-2">MA(22), Bollinger, ADX</div>
-            <label class="inline-flex items-center mt-2"><input id="chkMA" type="checkbox" class="mr-2" checked>MA(22)</label>
-            <label class="inline-flex items-center mt-2"><input id="chkBB" type="checkbox" class="mr-2" checked>Bollinger</label>
-            <label class="inline-flex items-center mt-2"><input id="chkADX" type="checkbox" class="mr-2" checked>ADX</label>
+            <div class="small mt-2">MA(22), Bollinger, ADX, RSI, MACD</div>
+            <label class="inline-flex items-center mt-2"><input id="chkMA" type="checkbox" class="mr-2" checked>MA(22)</label><br/>
+            <label class="inline-flex items-center mt-2"><input id="chkBB" type="checkbox" class="mr-2" checked>Bollinger</label><br/>
+            <label class="inline-flex items-center mt-2"><input id="chkADX" type="checkbox" class="mr-2" checked>ADX</label><br/>
+            <label class="inline-flex items-center mt-2"><input id="chkRSI" type="checkbox" class="mr-2">RSI</label><br/>
+            <label class="inline-flex items-center mt-2"><input id="chkMACD" type="checkbox" class="mr-2">MACD</label>
           </div>
 
           <div class="card p-3 rounded">
             <div class="font-semibold">Data</div>
-            <div class="mt-2 small">Upload OHLCV CSV or fetch historical via Yahoo (demo).</div>
+            <div class="mt-2 small">Upload OHLCV CSV (date,open,high,low,close,volume) or use option-chain historic CSVs.</div>
             <input id="fileInput" type="file" accept=".csv" class="mt-2 block w-full text-slate-200 bg-slate-800/40 rounded" />
             <input id="strikeInput" placeholder="Enter strike to highlight" class="mt-2 block w-full rounded bg-slate-800/40 p-2" />
             <button id="loadBtn" class="mt-2 px-3 py-2 bg-sky-600 rounded">Load & Analyze</button>
+            <div class="mt-2 small">Or paste FII/DII CSV in README format.</div>
           </div>
 
           <div class="card p-3 rounded">
             <div class="font-semibold">Option Chain</div>
-            <div class="mt-2 small">Inside-app option chain (proxied). Expiry selector below</div>
+            <div class="mt-2 small">Live option chain via proxy worker. Select expiry below.</div>
             <div id="ocControls" class="mt-3 flex gap-2 items-center">
               <select id="ocExpiry" class="rounded bg-slate-900 p-2"></select>
               <select id="ocRefresh" class="rounded bg-slate-900 p-2"><option value="0">No refresh</option><option value="30">30s</option><option value="60" selected>60s</option></select>
@@ -72,12 +78,21 @@
             <div id="ocContainer" class="mt-3 overflow-auto max-h-60"></div>
           </div>
         </div>
+
       </div>
 
       <div class="col-span-4">
         <div class="card p-4 rounded mb-4">
           <h3 class="font-semibold">Signals</h3>
-          <pre id="diag" class="mt-2 small bg-slate-900 p-3 rounded max-h-44 overflow-auto">No data loaded.</pre>
+          <pre id="diag" class="mt-2 small bg-slate-900 p-3 rounded max-h-44 overflow-auto mono">No data loaded.</pre>
+        </div>
+
+        <div class="card p-4 rounded mb-4">
+          <h3 class="font-semibold">News & Sentiment</h3>
+          <div class="small mt-2">Fetches Google News RSS and scores keywords (demo). Paste URL or use built-in RSS.</div>
+          <input id="newsUrl" placeholder="Enter RSS to analyze" class="mt-2 block w-full rounded bg-slate-800/40 p-2" />
+          <button id="newsFetchBtn" class="mt-2 px-3 py-1 rounded bg-violet-600">Analyze News</button>
+          <div id="newsOut" class="mt-3 small"></div>
         </div>
 
         <div class="card p-4 rounded">
